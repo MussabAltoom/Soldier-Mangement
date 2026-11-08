@@ -1,0 +1,79 @@
+
+-- C1: Does: Fetches the 10 most recently added soldiers. Rows returned: [X]
+SELECT * FROM soldiers ORDER BY soldier_id DESC LIMIT 10;
+
+-- C2: Does: Fetches newest 10 soldiers ordered by ID ascending. Rows returned: [X]
+SELECT * FROM (SELECT * FROM soldiers ORDER BY soldier_id DESC LIMIT 10) AS sub ORDER BY soldier_id ASC;
+
+-- C3: Does: Finds specific soldiers using exact IDs. Rows returned: [X]
+SELECT * FROM soldiers WHERE soldier_id IN (10, 15, 20);
+
+-- C4: Does: Finds soldiers using mathematically offset IDs (+2). Rows returned: [X]
+SELECT * FROM soldiers WHERE soldier_id IN (12, 17, 22);
+
+-- C5: Does: Filters active soldiers within ID range 10-20. Rows returned: [X]
+SELECT * FROM soldiers WHERE status = 'Active' AND soldier_id BETWEEN 10 AND 20;
+
+-- C6: Does: Lists soldiers by rank level then last name. Rows returned: [X]
+SELECT s.soldier_id, s.first_name, s.last_name, r.rank_name
+FROM soldiers s
+JOIN ranks r ON s.rank_id = r.rank_id
+ORDER BY r.rank_level DESC, s.last_name ASC;
+
+-- C7: Does: Gets details of active soldiers in unit U (3). Rows returned: [X]
+SELECT s.first_name, s.last_name, r.rank_name, u.unit_name, u.location
+FROM soldiers s
+JOIN ranks r ON s.rank_id = r.rank_id
+JOIN units u ON s.unit_id = u.unit_id
+WHERE s.status = 'Active' AND s.unit_id = 3;
+
+-- C8: Does: Lists soldiers assigned to mission M (3). Rows returned: [X]
+SELECT m.mission_name, s.first_name, s.last_name, sm.mission_role, u.unit_name
+FROM soldier_missions sm
+JOIN soldiers s ON sm.soldier_id = s.soldier_id
+JOIN missions m ON sm.mission_id = m.mission_id
+JOIN units u ON s.unit_id = u.unit_id
+WHERE sm.mission_id = 3;
+
+-- C9: Does: Identifies soldiers with no mission history. Rows returned: [X]
+SELECT s.* FROM soldiers s
+LEFT JOIN soldier_missions sm ON s.soldier_id = sm.soldier_id
+WHERE sm.mission_id IS NULL;
+
+-- C10: Does: Counts soldiers per unit, ordered by size. Rows returned: [X]
+SELECT u.unit_name, COUNT(s.soldier_id) AS number_of_soldiers
+FROM units u
+LEFT JOIN soldiers s ON u.unit_id = s.unit_id
+GROUP BY u.unit_id
+ORDER BY number_of_soldiers DESC;
+
+-- ==========================================
+-- Part D: Index and view
+-- ==========================================
+
+-- D1: Does: Analyzes query before index. Rows returned: [X]
+EXPLAIN SELECT * FROM soldiers WHERE last_name = 'Mugisha';
+
+-- Does: Creates index on last_name to speed up search. Rows returned: 0
+CREATE INDEX idx_soldiers_last_name ON soldiers(last_name);
+
+-- Does: Analyzes query after index (type is now ref, key is idx_soldiers_last_name). Rows returned: [X]
+EXPLAIN SELECT * FROM soldiers WHERE last_name = 'Mugisha';
+
+-- D2: Does: Creates a simplified view of soldier details. Rows returned: 0
+CREATE VIEW v_soldier_profile AS
+SELECT 
+    s.soldier_id, 
+    CONCAT(s.first_name, ' ', s.last_name) AS full_name, 
+    r.rank_name, 
+    u.unit_name, 
+    u.location, 
+    s.status
+FROM soldiers s
+JOIN ranks r ON s.rank_id = r.rank_id
+JOIN units u ON s.unit_id = u.unit_id;
+
+-- D3: Does: Uses view to display soldiers in unit U (3). Rows returned: [X]
+SELECT * FROM v_soldier_profile 
+WHERE unit_name = (SELECT unit_name FROM units WHERE unit_id = 3) 
+ORDER BY full_name ASC;
