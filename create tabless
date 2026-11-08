@@ -1,0 +1,47 @@
+CREATE TABLE ranks (
+    rank_id SERIAL PRIMARY KEY,
+    rank_name VARCHAR(50) NOT NULL UNIQUE,
+    rank_level INT CHECK (rank_level BETWEEN 1 AND 6)
+);
+
+-- Does: Creates units table with required fields. Rows returned: 0
+CREATE TABLE units (
+    unit_id SERIAL PRIMARY KEY,
+    unit_name VARCHAR(50) NOT NULL UNIQUE,
+    location VARCHAR(100) NOT NULL
+);
+
+-- Does: Creates missions table ensuring end_date is valid. Rows returned: 0
+CREATE TABLE missions (
+    mission_id SERIAL PRIMARY KEY,
+    mission_name VARCHAR(100) NOT NULL UNIQUE,
+    start_date DATE NOT NULL,
+    end_date DATE,
+    CHECK (end_date IS NULL OR end_date >= start_date)
+);
+
+-- Does: Creates soldiers table with SERIAL primary key and required constraints. Rows returned: 0
+CREATE TABLE soldiers (
+    soldier_id SERIAL PRIMARY KEY,
+    service_number VARCHAR(50) NOT NULL UNIQUE,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
+    date_of_birth DATE NOT NULL,
+    enlistment_date DATE NOT NULL,
+    status VARCHAR(20) DEFAULT 'Active' CHECK (status IN ('Active', 'On Leave', 'Retired')),
+    rank_id BIGINT  NOT NULL,
+    unit_id BIGINT  NOT NULL,
+    CHECK (enlistment_date > date_of_birth),
+    FOREIGN KEY (rank_id) REFERENCES ranks(rank_id),
+    FOREIGN KEY (unit_id) REFERENCES units(unit_id)
+);
+
+-- Does: Creates junction table for assignments without duplicates. Rows returned: 0
+CREATE TABLE soldier_missions (
+    soldier_id BIGINT  NOT NULL,
+    mission_id BIGINT  NOT NULL,
+    mission_role VARCHAR(100) NOT NULL,
+    PRIMARY KEY (soldier_id, mission_id),
+    FOREIGN KEY (soldier_id) REFERENCES soldiers(soldier_id),
+    FOREIGN KEY (mission_id) REFERENCES missions(mission_id)
+);
